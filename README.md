@@ -76,12 +76,10 @@ kubectl port-forward svc/facturacion-svc 8082:8082 &
 Luego repetir las llamadas `curl` del punto 1.
 
 ## 4) Evidencias para el PDF
-Ejecuta y captura (o redirige a JSON):
+:
 ```bash
 kubectl get deploy,svc,pvc -o json > evidencias_k8s.json
 kubectl get pods -o json > pods.json
 ```
 
-## Notas
-- Este esqueleto es **mínimo pero funcional**. Ajusta validaciones, modelos y seguridad según la rúbrica.
-- Si te falta tiempo, prioriza que el **flujo end-to-end** funcione y que las imágenes estén en Docker Hub.
+
