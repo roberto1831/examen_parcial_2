@@ -1,0 +1,108 @@
+version: "3.9"
+
+services:
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: centraldb
+      POSTGRES_USER: central
+      POSTGRES_PASSWORD: centralpass
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+
+  mysql:
+    image: mysql:8.0
+    command: --default-authentication-plugin=mysql_native_password
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: inventariodb
+      MYSQL_USER: inventario
+      MYSQL_PASSWORD: inventariopass
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  mariadb:
+    image: mariadb:10.11
+    environment:
+      MARIADB_ROOT_PASSWORD: root
+      MARIADB_DATABASE: facturadb
+      MARIADB_USER: factura
+      MARIADB_PASSWORD: facturapass
+    ports:
+      - "3307:3306"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+
+  central-svc:
+    build: ../central-svc
+    depends_on:
+      - rabbitmq
+      - postgres
+    environment:
+      POSTGRES_URL: jdbc:postgresql://postgres:5432/centraldb
+      POSTGRES_USER: central
+      POSTGRES_PASSWORD: centralpass
+      RABBIT_HOST: rabbitmq
+      RABBIT_USER: guest
+      RABBIT_PASSWORD: guest
+      RABBIT_EXCHANGE: cosechas
+      RABBIT_ROUTING_NEW: nueva
+    ports:
+      - "8080:8080"
+
+  inventario-svc:
+    build: ../inventario-svc
+    depends_on:
+      - rabbitmq
+      - mysql
+    environment:
+      MYSQL_URL: mysql://inventario:inventariopass@mysql:3306/inventariodb
+      RABBIT_URL: amqp://guest:guest@rabbitmq:5672
+      RABBIT_EXCHANGE: cosechas
+      RABBIT_ROUTING_NEW: nueva
+      RABBIT_ROUTING_OK: inventario_ok
+      QUEUE_INVENTARIO: cola_inventario
+    ports:
+      - "8081:8081"
+
+  facturacion-svc:
+    build: ../facturacion-svc
+    depends_on:
+      - rabbitmq
+      - mariadb
+      - central-svc
+    environment:
+      RABBIT_URL: amqp://guest:guest@rabbitmq:5672
+      RABBIT_EXCHANGE: cosechas
+      RABBIT_ROUTING_NEW: nueva
+      RABBIT_ROUTING_OK: inventario_ok
+      MARIADB_HOST: mariadb
+      MARIADB_DB: facturadb
+      MARIADB_USER: factura
+      MARIADB_PASS: facturapass
+      CENTRAL_URL: http://central-svc:8080
+      PYTHONUNBUFFERED: "1"
+    ports:
+      - "8082:8082"
+
+volumes:
+  rabbitmq_data: {}
+  pg_data: {}
+  mysql_data: {}
+  mariadb_data: {}

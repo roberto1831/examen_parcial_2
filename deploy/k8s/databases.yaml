@@ -1,0 +1,98 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: postgres } }
+  template:
+    metadata: { labels: { app: postgres } }
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:16
+        env:
+        - { name: POSTGRES_DB, value: centraldb }
+        - { name: POSTGRES_USER, value: central }
+        - { name: POSTGRES_PASSWORD, value: centralpass }
+        ports: [{ containerPort: 5432 }]
+        volumeMounts:
+        - { name: data, mountPath: /var/lib/postgresql/data }
+      volumes:
+      - name: data
+        persistentVolumeClaim: { claimName: postgres-pvc }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+spec:
+  selector: { app: postgres }
+  ports: [{ port: 5432, targetPort: 5432 }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: mysql } }
+  template:
+    metadata: { labels: { app: mysql } }
+    spec:
+      containers:
+      - name: mysql
+        image: mysql:8.0
+        args: ["--default-authentication-plugin=mysql_native_password"]
+        env:
+        - { name: MYSQL_ROOT_PASSWORD, value: root }
+        - { name: MYSQL_DATABASE, value: inventariodb }
+        - { name: MYSQL_USER, value: inventario }
+        - { name: MYSQL_PASSWORD, value: inventariopass }
+        ports: [{ containerPort: 3306 }]
+        volumeMounts:
+        - { name: data, mountPath: /var/lib/mysql }
+      volumes:
+      - name: data
+        persistentVolumeClaim: { claimName: mysql-pvc }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+spec:
+  selector: { app: mysql }
+  ports: [{ port: 3306, targetPort: 3306 }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mariadb
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: mariadb } }
+  template:
+    metadata: { labels: { app: mariadb } }
+    spec:
+      containers:
+      - name: mariadb
+        image: mariadb:10.11
+        env:
+        - { name: MARIADB_ROOT_PASSWORD, value: root }
+        - { name: MARIADB_DATABASE, value: facturadb }
+        - { name: MARIADB_USER, value: factura }
+        - { name: MARIADB_PASSWORD, value: facturapass }
+        ports: [{ containerPort: 3306 }]
+        volumeMounts:
+        - { name: data, mountPath: /var/lib/mysql }
+      volumes:
+      - name: data
+        persistentVolumeClaim: { claimName: mariadb-pvc }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mariadb
+spec:
+  selector: { app: mariadb }
+  ports: [{ port: 3306, targetPort: 3306 }]

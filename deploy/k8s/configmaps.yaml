@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: agroflow-config
+data:
+  RABBIT_EXCHANGE: "cosechas"
+  RABBIT_ROUTING_NEW: "nueva"
+  PRICES_JSON: |
+    {"Arroz Oro":120, "Cafe Premium":300}

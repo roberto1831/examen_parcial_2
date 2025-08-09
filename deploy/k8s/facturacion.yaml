@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: facturacion-svc
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: facturacion-svc } }
+  template:
+    metadata:
+      labels: { app: facturacion-svc }
+    spec:
+      containers:
+      - name: facturacion-svc
+        image: DOCKERHUB_USER/facturacion-svc:latest
+        ports: [{ containerPort: 8082 }]
+        env:
+        - { name: SERVER_PORT, value: "8082" }
+        - { name: RABBIT_URL, valueFrom: { secretKeyRef: { name: agroflow-secrets, key: RABBIT_URL } } }
+        - { name: CENTRAL_URL, value: "http://central-svc:8080" }
+        - { name: MARIADB_HOST, valueFrom: { secretKeyRef: { name: agroflow-secrets, key: MARIADB_HOST } } }
+        - { name: MARIADB_DB, valueFrom: { secretKeyRef: { name: agroflow-secrets, key: MARIADB_DB } } }
+        - { name: MARIADB_USER, valueFrom: { secretKeyRef: { name: agroflow-secrets, key: MARIADB_USER } } }
+        - { name: MARIADB_PASS, valueFrom: { secretKeyRef: { name: agroflow-secrets, key: MARIADB_PASS } } }
+        readinessProbe:
+          httpGet: { path: "/health", port: 8082 }
+          initialDelaySeconds: 20
+          periodSeconds: 10
+        livenessProbe:
+          httpGet: { path: "/health", port: 8082 }
+          initialDelaySeconds: 60
+          periodSeconds: 30
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: facturacion-svc
+spec:
+  selector: { app: facturacion-svc }
+  ports: [{ port: 8082, targetPort: 8082 }]
+  type: ClusterIP
